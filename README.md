@@ -1,3 +1,7 @@
+psql -h db-datamaster.chy482imol7a.us-east-2.rds.amazonaws.com -U postgres -d postgres
+
+
+
 Overview
 ========
 
