@@ -1,6 +1,16 @@
 
 # Projeto: Ranking de Municípios Brasileiros
 
+Criando infra aws executar o mando init dentro do diretorio infra_terraform
+terraform init             # Inicializa o projeto Terraform
+
+apos 
+
+terraform plan
+terraform apply
+
+
+
 ## 🔌 Conexões do Airflow
 
 Essas são as conexões configuradas manualmente via interface Web do Airflow:
@@ -8,8 +18,8 @@ Essas são as conexões configuradas manualmente via interface Web do Airflow:
 ### 1. PostgreSQL (AWS RDS)
 - **Conn ID**: `postgres_rds`
 - **Conn Type**: `Postgres`
-- **Host**: `db-datamaster.chy482imol7a.us-east-2.rds.amazonaws.com`
-- **Database**: `db-datamaster`
+- **Host**: `ranking-municipios-db.chy482imol7a.us-east-2.rds.amazonaws.com`
+- **Database**: `db_datamaster`
 - **Login**: `postgres`
 - **Password**: `********`
 - **Port**: `5432`
