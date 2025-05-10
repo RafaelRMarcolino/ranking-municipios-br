@@ -48,7 +48,7 @@ Para executar a DAG `ibge_populacao`, crie uma conexão HTTP no Airflow com os s
 
 - **Connection Id**: `ibge_api`
 - **Connection Type**: `HTTP`
-- **Host**: `https://www.ibge.gov.br`
+- **Host**: `https://ftp.ibge.gov.br`
 - **Login**: `admin` *(opcional)*
 - **Password**: `*****` *(opcional)*
 - **Extra**:
