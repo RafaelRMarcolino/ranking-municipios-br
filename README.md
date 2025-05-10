@@ -33,8 +33,6 @@ Essas são as conexões configuradas manualmente via interface Web do Airflow:
 - **Password**: `********`
 - **Port**: `5432`
 
-
-
 ### 4. MinIO (alternativa ao S3)
 - **Conn ID**: `minio`
 - **Conn Type**: `Amazon Web Services`
@@ -44,6 +42,23 @@ Essas são as conexões configuradas manualmente via interface Web do Airflow:
 ```json
 { "endpoint_url": "http://minio:9000" }
 ```
+
+### 5. ibge_api
+Para executar a DAG `ibge_populacao`, crie uma conexão HTTP no Airflow com os seguintes parâmetros:
+
+- **Connection Id**: `ibge_api`
+- **Connection Type**: `HTTP`
+- **Host**: `https://www.ibge.gov.br`
+- **Login**: `admin` *(opcional)*
+- **Password**: `*****` *(opcional)*
+- **Extra**:
+```json
+{
+  "endpoint": "/Estimativas_de_Populacao/Estimativas_2024/POP2024_20241230.xls",
+  "headers": {}
+}
+```
+💡 Essa conexão será usada pelo sensor da DAG `ibge_populacao` para verificar a disponibilidade da URL antes de iniciar o download do arquivo `.xls`.
 
 ---
 
