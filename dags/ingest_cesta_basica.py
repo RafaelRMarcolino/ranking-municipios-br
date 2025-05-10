@@ -88,7 +88,7 @@ default_args = {
 }
 
 dag = DAG(
-    dag_id='insert_cesta_basica_rds',
+    dag_id='ingest_cesta_basica_s3',
     default_args=default_args,
     schedule_interval=None,
     catchup=False,

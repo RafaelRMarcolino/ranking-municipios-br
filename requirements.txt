@@ -8,4 +8,5 @@ pandas
 xlrd>=2.0.1
 selenium
 chromedriver-autoinstaller
+kaggle
 
