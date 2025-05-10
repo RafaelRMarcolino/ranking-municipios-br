@@ -80,6 +80,22 @@ Essa conexão será usada pelo Selenium para simular o preenchimento e exportaç
 
 ---
 
+https://www.kaggle.com/code/unanimad/brazilian-houses-to-rent/notebook
+
+Connection Id *	 kaggle_default
+Connection Type *	generic
+
+login: REMOVIDO
+password	: REMOVIDO
+
+extra: 
+{
+  "file_path": "/home/astro/.kaggle/kaggle.json"
+}
+
+
+
+
 ## 🧲 Comandos Úteis
 
 ### ▶️ Execução de DAGs no Airflow:
