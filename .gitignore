@@ -14,3 +14,5 @@ include/data/minio/
 *.bkp
 *.bin
 *.json
+.terraform/
+*.deb
