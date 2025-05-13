@@ -33,7 +33,7 @@ def salvar_parquet_local_para_s3(ds, ti):
     data_execucao = datetime.strptime(ds, "%Y-%m-%d")
     ano = data_execucao.year
     mes = data_execucao.month
-    key = f"bronze/dieese/cesta_basica/ano={ano}/mes={mes:02d}/cesta_basica_valor.parquet"
+    key = f"bronze/dieese/cesta_basica/{ano}/{mes:02d}/cesta_basica_valor.parquet"
     bucket = "ranking-municipios-br"
     s3_path = f"s3://{bucket}/{key}"
 
