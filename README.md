@@ -124,3 +124,8 @@ docker stop $(docker ps -aq)
 docker rm $(docker ps -aq)
 ```
 https://www.dieese.org.br/cesta/
+
+
+MSCK REPAIR TABLE bronze.cesta_basica;
+MSCK REPAIR TABLE bronze.aluguel_medio;
+MSCK REPAIR TABLE bronze.populacao_estimada;
