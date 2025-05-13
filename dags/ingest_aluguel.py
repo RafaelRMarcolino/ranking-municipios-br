@@ -1,80 +1,70 @@
 from airflow.decorators import dag, task
-from airflow.models import Variable
 from airflow.hooks.base import BaseHook
 from datetime import datetime
 import os
 import pandas as pd
 import json
 import boto3
-from io import StringIO
+from io import BytesIO
+from include.aluguel.task import inserir_aluguel_postgres_parquet
 
 @dag(
     dag_id="ingest_aluguel_kaggle_rds",
     schedule_interval=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    tags=["aluguel", "bronze"]
+    tags=["aluguel", "bronze", "rds"]
 )
 def ingest_aluguel_kaggle_rds():
 
     @task()
-    def download_kaggle_dataset():
+    def processar_e_salvar_s3(execution_date=None) -> str:
+        # Configura credenciais do Kaggle
         conn = BaseHook.get_connection("kaggle_default")
-        kaggle_json = {
-            "username": conn.login,
-            "key": conn.password
-        }
-
+        kaggle_json = {"username": conn.login, "key": conn.password}
         os.makedirs("/home/astro/.kaggle", exist_ok=True)
         with open("/home/astro/.kaggle/kaggle.json", "w") as f:
             json.dump(kaggle_json, f)
         os.chmod("/home/astro/.kaggle/kaggle.json", 0o600)
 
+        # Baixa o dataset
         os.makedirs("/tmp/data_kaggle", exist_ok=True)
         os.system("kaggle datasets download -d shwaubh/updated-brasilian-housing-to-rent -p /tmp/data_kaggle --unzip")
 
-    @task()
-    def process_and_upload(execution_date=None):
-        # Identifica o CSV baixado
+        # Processa CSV
         files = os.listdir("/tmp/data_kaggle")
         csv_file = next((f for f in files if f.endswith(".csv")), None)
-
-        if not csv_file:
-            raise FileNotFoundError("Nenhum arquivo CSV encontrado em /tmp/data_kaggle")
-
         df = pd.read_csv(f"/tmp/data_kaggle/{csv_file}")
 
-        # Normaliza colunas para letras minúsculas
-        df.columns = [col.strip().lower() for col in df.columns]
+        # Normaliza e sanitiza colunas
+        df.columns = [col.strip().lower().replace(" ", "_").replace("-", "_") for col in df.columns]
 
-        if 'rent amount' not in df.columns:
-            raise KeyError(f"Coluna 'rent amount' não encontrada. Colunas disponíveis: {df.columns}")
-
-        df['rent amount'] = df['rent amount'].replace('[R$ ]', '', regex=True).astype(float)
-        media_por_cidade = df.groupby('city')['rent amount'].mean().reset_index()
-
-        # Envio ao S3
+        # Salva Parquet no S3
         aws_conn = BaseHook.get_connection("aws_s3")
-        session = boto3.Session(
+        s3 = boto3.client(
+            "s3",
             aws_access_key_id=aws_conn.login,
             aws_secret_access_key=aws_conn.password,
             region_name=json.loads(aws_conn.extra).get("region_name")
         )
-        s3 = session.client("s3")
-        bucket_name = "ranking-municipios-br"
-        date_prefix = execution_date.strftime("%Y-%m") if execution_date else "manual"
-        prefix = f"bronze/aluguel/{date_prefix}/"
 
-        # CSV
-        csv_buffer = StringIO()
-        media_por_cidade.to_csv(csv_buffer, index=False)
-        s3.put_object(Bucket=bucket_name, Key=f"{prefix}aluguel_medio_por_cidade.csv", Body=csv_buffer.getvalue())
+        bucket = "ranking-municipios-br"
+        prefix = execution_date.strftime("bronze/aluguel/%Y/%m/")
+        key = f"{prefix}aluguel_medio_por_cidade.parquet"
+        s3_path = f"s3://{bucket}/{key}"
 
-        # JSON
-        json_buffer = StringIO()
-        media_por_cidade.to_json(json_buffer, orient="records", force_ascii=False)
-        s3.put_object(Bucket=bucket_name, Key=f"{prefix}aluguel_medio_por_cidade.json", Body=json_buffer.getvalue())
+        buffer = BytesIO()
+        df.to_parquet(buffer, index=False)
+        buffer.seek(0)
+        s3.upload_fileobj(buffer, Bucket=bucket, Key=key)
 
-    download_kaggle_dataset() >> process_and_upload()
+        return s3_path
+
+    @task()
+    def inserir_no_rds(s3_path: str, execution_date=None):
+        data_carga = execution_date.date()
+        inserir_aluguel_postgres_parquet(s3_path, conn_id="postgres_rds", data_carga=data_carga)
+
+    inserir_no_rds(processar_e_salvar_s3())
 
 dag = ingest_aluguel_kaggle_rds()
