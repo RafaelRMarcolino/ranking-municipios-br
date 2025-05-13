@@ -2,7 +2,7 @@
 
 Criando infra AWS: executar o comando `init` dentro do diretório `infra_terraform`
 ```bash
-terraform init             # Inicializa o projeto Terraform
+terraform init               # Inicializa o projeto Terraform
 terraform plan
 terraform apply
 ```
