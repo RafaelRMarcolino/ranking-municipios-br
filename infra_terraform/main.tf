@@ -1,39 +1,24 @@
+# Provisionamento de Glue + Athena com Terraform
+
 provider "aws" {
   region = var.region
 }
 
-resource "aws_db_instance" "postgres_instance" {
-  identifier           = "ranking-municipios-db"
-  allocated_storage    = 20
-  engine               = "postgres"
-  engine_version       = "15.12"
-  instance_class       = "db.t3.micro"
-  db_name              = var.db_name            
-  username             = var.db_user
-  password             = var.db_password
-  parameter_group_name = "default.postgres15"
-  skip_final_snapshot  = true
-  publicly_accessible  = true
-}
-
-
-# Provisionamento de Glue + Athena com Terraform
-
 # 1. Criar o banco de dados no Glue
 resource "aws_glue_catalog_database" "bronze_db" {
-  name = "bronze"
+  name        = "bronze"
   description = "Banco de dados do Glue para camada Bronze"
 }
 
-# 2. Criar a tabela externa de cesta básica no Glue
+# 2. Tabela externa: cesta básica
 resource "aws_glue_catalog_table" "cesta_basica" {
   name          = "cesta_basica"
   database_name = aws_glue_catalog_database.bronze_db.name
   table_type    = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    has_encrypted_data    = "false"
+    classification     = "parquet"
+    has_encrypted_data = "false"
   }
 
   storage_descriptor {
@@ -75,15 +60,15 @@ resource "aws_glue_catalog_table" "cesta_basica" {
   }
 }
 
-# 3. Criar a tabela externa de aluguel médio no Glue
+# 3. Tabela externa: aluguel médio
 resource "aws_glue_catalog_table" "aluguel_medio" {
   name          = "aluguel_medio"
   database_name = aws_glue_catalog_database.bronze_db.name
   table_type    = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    has_encrypted_data    = "false"
+    classification     = "parquet"
+    has_encrypted_data = "false"
   }
 
   storage_descriptor {
@@ -121,19 +106,20 @@ resource "aws_glue_catalog_table" "aluguel_medio" {
   }
 }
 
-# 4. Criar a tabela externa de população estimada no Glue
+# 4. Tabela externa: população estimada (✅ CAMINHO CORRIGIDO)
 resource "aws_glue_catalog_table" "populacao_estimada" {
   name          = "populacao_estimada"
   database_name = aws_glue_catalog_database.bronze_db.name
   table_type    = "EXTERNAL_TABLE"
 
   parameters = {
-    classification        = "parquet"
-    has_encrypted_data    = "false"
+    classification     = "parquet"
+    has_encrypted_data = "false"
   }
 
   storage_descriptor {
-    location      = "s3://ranking-municipios-br/bronze/populacao_estimada/"
+    # ✅ CAMINHO ATUALIZADO COM /ibge/
+    location      = "s3://ranking-municipios-br/bronze/ibge/populacao_estimada/"
     input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
     output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
     compressed    = false
@@ -153,7 +139,7 @@ resource "aws_glue_catalog_table" "populacao_estimada" {
     }
     columns {
       name = "data_carga"
-      type = "date"
+      type = "timestamp"
     }
   }
 
@@ -171,7 +157,7 @@ resource "aws_glue_catalog_table" "populacao_estimada" {
   }
 }
 
-# 5. Criar o Workgroup do Athena (opcional)
+# 5. Workgroup do Athena
 resource "aws_athena_workgroup" "default" {
   name = "bronze_workgroup"
 
@@ -182,4 +168,6 @@ resource "aws_athena_workgroup" "default" {
       output_location = "s3://ranking-municipios-br/athena-results/"
     }
   }
+
+  force_destroy = true
 }

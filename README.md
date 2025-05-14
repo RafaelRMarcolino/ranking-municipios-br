@@ -129,3 +129,9 @@ https://www.dieese.org.br/cesta/
 MSCK REPAIR TABLE bronze.cesta_basica;
 MSCK REPAIR TABLE bronze.aluguel_medio;
 MSCK REPAIR TABLE bronze.populacao_estimada;
+
+excluir query salvas
+
+aws athena delete-work-group \
+  --work-group bronze_workgroup \
+  --recursive-delete-option
