@@ -34,19 +34,123 @@ resource "aws_glue_catalog_table" "cesta_basica" {
 
     columns {
       name = "data_mes"
-      type = "timestamp"
-    }
-    columns {
-      name = "cidade"
       type = "string"
     }
     columns {
-      name = "valor"
-      type = "float"
+      name = "data_carga"
+      type = "string"
     }
     columns {
-      name = "data_carga"
-      type = "timestamp"
+      name = "brasilia"
+      type = "double"
+    }
+    columns {
+      name = "campo_grande"
+      type = "double"
+    }
+    columns {
+      name = "cuiaba"
+      type = "double"
+    }
+    columns {
+      name = "goiania"
+      type = "double"
+    }
+    columns {
+      name = "belo_horizonte"
+      type = "double"
+    }
+    columns {
+      name = "rio_de_janeiro"
+      type = "double"
+    }
+    columns {
+      name = "sao_paulo"
+      type = "double"
+    }
+    columns {
+      name = "vitoria"
+      type = "double"
+    }
+    columns {
+      name = "curitiba"
+      type = "double"
+    }
+    columns {
+      name = "florianopolis"
+      type = "double"
+    }
+    columns {
+      name = "porto_alegre"
+      type = "double"
+    }
+    columns {
+      name = "belem"
+      type = "double"
+    }
+    columns {
+      name = "boa_vista"
+      type = "double"
+    }
+    columns {
+      name = "macapa"
+      type = "double"
+    }
+    columns {
+      name = "manaus"
+      type = "double"
+    }
+    columns {
+      name = "palmas"
+      type = "double"
+    }
+    columns {
+      name = "porto_velho"
+      type = "double"
+    }
+    columns {
+      name = "rio_branco"
+      type = "double"
+    }
+    columns {
+      name = "aracaju"
+      type = "double"
+    }
+    columns {
+      name = "fortaleza"
+      type = "double"
+    }
+    columns {
+      name = "joao_pessoa"
+      type = "double"
+    }
+    columns {
+      name = "maceio"
+      type = "double"
+    }
+    columns {
+      name = "natal"
+      type = "double"
+    }
+    columns {
+      name = "recife"
+      type = "double"
+    }
+    columns {
+      name = "salvador"
+      type = "double"
+    }
+    columns {
+      name = "sao_luis"
+      type = "double"
+    }
+    columns {
+      name = "teresina"
+      type = "double"
+    }
+    columns {
+      name = "macae"
+      type = "double"
     }
   }
 
@@ -106,7 +210,7 @@ resource "aws_glue_catalog_table" "aluguel_medio" {
   }
 }
 
-# 4. Tabela externa: população estimada (✅ CAMINHO CORRIGIDO)
+# 4. Tabela externa: população estimada
 resource "aws_glue_catalog_table" "populacao_estimada" {
   name          = "populacao_estimada"
   database_name = aws_glue_catalog_database.bronze_db.name
@@ -118,7 +222,6 @@ resource "aws_glue_catalog_table" "populacao_estimada" {
   }
 
   storage_descriptor {
-    # ✅ CAMINHO ATUALIZADO COM /ibge/
     location      = "s3://ranking-municipios-br/bronze/ibge/populacao_estimada/"
     input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
     output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
