@@ -28,6 +28,8 @@ resource "aws_glue_catalog_database" "bronze_db" {
   description = "Banco de dados do Glue para camada Bronze"
 }
 
+
+
 # 2. Tabela externa: cesta básica
 resource "aws_glue_catalog_table" "cesta_basica" {
   name          = "cesta_basica"
@@ -54,10 +56,7 @@ resource "aws_glue_catalog_table" "cesta_basica" {
       name = "data_mes"
       type = "string"
     }
-    columns {
-      name = "data_carga"
-      type = "string"
-    }
+
     columns {
       name = "brasilia"
       type = "double"
@@ -173,14 +172,13 @@ resource "aws_glue_catalog_table" "cesta_basica" {
   }
 
   partition_keys {
-    name = "ano"
-    type = "int"
-  }
-  partition_keys {
-    name = "mes"
-    type = "int"
+    name = "data_carga"
+    type = "string"
   }
 }
+
+
+
 
 # 3. Tabela externa: aluguel médio
 resource "aws_glue_catalog_table" "aluguel_medio" {
@@ -260,22 +258,16 @@ resource "aws_glue_catalog_table" "aluguel_medio" {
       name = "total"
       type = "int"
     }
-    columns {
-      name = "data_carga"
-      type = "string"
-    }
+
   }
 
-  partition_keys {
-    name = "ano"
-    type = "int"
-  }
 
   partition_keys {
-    name = "mes"
-    type = "int"
+    name = "data_carga"
+    type = "string"
   }
 }
+
 
 # 4b. Tabela externa: população estimada por UF
 resource "aws_glue_catalog_table" "populacao_estimada_uf" {
@@ -303,29 +295,21 @@ resource "aws_glue_catalog_table" "populacao_estimada_uf" {
       name = "unidade_federativa"
       type = "string"
     }
+
     columns {
       name = "populacao"
       type = "int"
     }
-    columns {
-      name = "data_carga"
-      type = "string"
-    }
+
   }
 
+
   partition_keys {
-    name = "ano"
-    type = "int"
-  }
-  partition_keys {
-    name = "mes"
-    type = "int"
-  }
-  partition_keys {
-    name = "dia"
-    type = "int"
+    name = "data_carga"
+    type = "string"
   }
 }
+
 
 # 4c. Tabela externa: população estimada por municípios
 resource "aws_glue_catalog_table" "populacao_estimada_municipios" {
@@ -369,24 +353,12 @@ resource "aws_glue_catalog_table" "populacao_estimada_municipios" {
       name = "populacao"
       type = "int"
     }
-    columns {
-      name = "data_carga"
-      type = "string"
-    }
+
   }
 
 
   partition_keys {
-    name = "ano"
-    type = "int"
+    name = "data_carga"
+    type = "string"
   }
-  partition_keys {
-    name = "mes"
-    type = "int"
-  }
-  partition_keys {
-    name = "dia"
-    type = "int"
-  }
-  
 }
