@@ -1,5 +1,23 @@
 # Provisionamento de Glue + Athena com Terraform
 
+resource "aws_athena_workgroup" "bronze" {
+  name = "bronze_workgroup"
+
+  configuration {
+    enforce_workgroup_configuration = true
+    result_configuration {
+      output_location = "s3://ranking-municipios-br/athena-results/"
+    }
+  }
+
+  state = "ENABLED"
+
+  tags = {
+    Environment = "dev"
+    Project     = "Ranking Municipios"
+  }
+}
+
 provider "aws" {
   region = var.region
 }
@@ -187,16 +205,64 @@ resource "aws_glue_catalog_table" "aluguel_medio" {
     }
 
     columns {
+      name = "id"
+      type = "int"
+    }
+    columns {
       name = "city"
       type = "string"
     }
     columns {
-      name = "aluguel"
-      type = "float"
+      name = "area"
+      type = "int"
+    }
+    columns {
+      name = "rooms"
+      type = "int"
+    }
+    columns {
+      name = "bathroom"
+      type = "int"
+    }
+    columns {
+      name = "parking_spaces"
+      type = "int"
+    }
+    columns {
+      name = "floor"
+      type = "int"
+    }
+    columns {
+      name = "animal"
+      type = "int"
+    }
+    columns {
+      name = "furniture"
+      type = "int"
+    }
+    columns {
+      name = "hoa"
+      type = "int"
+    }
+    columns {
+      name = "rent_amount"
+      type = "int"
+    }
+    columns {
+      name = "property_tax"
+      type = "int"
+    }
+    columns {
+      name = "fire_insurance"
+      type = "int"
+    }
+    columns {
+      name = "total"
+      type = "int"
     }
     columns {
       name = "data_carga"
-      type = "timestamp"
+      type = "string"
     }
   }
 
@@ -204,15 +270,16 @@ resource "aws_glue_catalog_table" "aluguel_medio" {
     name = "ano"
     type = "int"
   }
+
   partition_keys {
     name = "mes"
     type = "int"
   }
 }
 
-# 4. Tabela externa: população estimada
-resource "aws_glue_catalog_table" "populacao_estimada" {
-  name          = "populacao_estimada"
+# 4b. Tabela externa: população estimada por UF
+resource "aws_glue_catalog_table" "populacao_estimada_uf" {
+  name          = "populacao_estimada_uf"
   database_name = aws_glue_catalog_database.bronze_db.name
   table_type    = "EXTERNAL_TABLE"
 
@@ -222,7 +289,7 @@ resource "aws_glue_catalog_table" "populacao_estimada" {
   }
 
   storage_descriptor {
-    location      = "s3://ranking-municipios-br/bronze/ibge/populacao_estimada/"
+    location      = "s3://ranking-municipios-br/bronze/ibge/populacao_estimada/brasil_uf/"
     input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
     output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
     compressed    = false
@@ -242,7 +309,7 @@ resource "aws_glue_catalog_table" "populacao_estimada" {
     }
     columns {
       name = "data_carga"
-      type = "timestamp"
+      type = "string"
     }
   }
 
@@ -260,17 +327,66 @@ resource "aws_glue_catalog_table" "populacao_estimada" {
   }
 }
 
-# 5. Workgroup do Athena
-resource "aws_athena_workgroup" "default" {
-  name = "bronze_workgroup"
+# 4c. Tabela externa: população estimada por municípios
+resource "aws_glue_catalog_table" "populacao_estimada_municipios" {
+  name          = "populacao_estimada_municipios"
+  database_name = aws_glue_catalog_database.bronze_db.name
+  table_type    = "EXTERNAL_TABLE"
 
-  configuration {
-    enforce_workgroup_configuration = true
+  parameters = {
+    classification     = "parquet"
+    has_encrypted_data = "false"
+  }
 
-    result_configuration {
-      output_location = "s3://ranking-municipios-br/athena-results/"
+  storage_descriptor {
+    location      = "s3://ranking-municipios-br/bronze/ibge/populacao_estimada/municipios/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+    compressed    = false
+
+    ser_de_info {
+      name                  = "parquet"
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "uf"
+      type = "string"
+    }
+    columns {
+      name = "cod_uf"
+      type = "int"
+    }
+    columns {
+      name = "cod_municipio"
+      type = "int"
+    }
+    columns {
+      name = "municipio"
+      type = "string"
+    }
+    columns {
+      name = "populacao"
+      type = "int"
+    }
+    columns {
+      name = "data_carga"
+      type = "string"
     }
   }
 
-  force_destroy = true
+
+  partition_keys {
+    name = "ano"
+    type = "int"
+  }
+  partition_keys {
+    name = "mes"
+    type = "int"
+  }
+  partition_keys {
+    name = "dia"
+    type = "int"
+  }
+  
 }
