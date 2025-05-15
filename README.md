@@ -1,15 +1,11 @@
-
 # Projeto: Ranking de Municípios Brasileiros
 
-Criando infra aws executar o mando init dentro do diretorio infra_terraform
-terraform init             # Inicializa o projeto Terraform
-
-apos 
-
+Criando infra AWS: executar o comando `init` dentro do diretório `infra_terraform`
+```bash
+terraform init               # Inicializa o projeto Terraform
 terraform plan
 terraform apply
-
-
+```
 
 ## 🔌 Conexões do Airflow
 
@@ -19,7 +15,7 @@ Essas são as conexões configuradas manualmente via interface Web do Airflow:
 - **Conn ID**: `postgres_rds`
 - **Conn Type**: `Postgres`
 - **Host**: `ranking-municipios-db.chy482imol7a.us-east-2.rds.amazonaws.com`
-- **Database**: `db_datamaster`
+- **Database**: `db-datamaster`
 - **Login**: `postgres`
 - **Password**: `********`
 - **Port**: `5432`
@@ -70,14 +66,43 @@ Para executar a DAG `ibge_populacao`, crie uma conexão HTTP no Airflow com os s
 ```
 💡 Essa conexão será usada pelo sensor da DAG `ibge_populacao` para verificar a disponibilidade da URL antes de iniciar o download do arquivo `.xls`.
 
+### 6. diese_api
+Para executar a DAG `ingest_diese`, que automatiza o scraping de todas as cidades da cesta básica no site do DIEESE, crie uma conexão HTTP com:
+
+- **Connection Id**: `diese_api`
+- **Connection Type**: `HTTP`
+- **Host**: `https://www.dieese.org.br`
+- **Login**: *(em branco)*
+- **Password**: *(em branco)*
+- **Extra**: *(em branco)*
+
+Essa conexão será usada pelo Selenium para simular o preenchimento e exportação da planilha de cada cidade.
+
 ---
 
-## 🧪 Comandos Úteis
+https://www.kaggle.com/code/unanimad/brazilian-houses-to-rent/notebook
+
+Connection Id *	 kaggle_default
+Connection Type *	generic
+
+login: REMOVIDO
+password	: REMOVIDO
+
+extra: 
+{
+  "file_path": "/home/astro/.kaggle/kaggle.json"
+}
+
+
+
+
+## 🧲 Comandos Úteis
 
 ### ▶️ Execução de DAGs no Airflow:
 ```bash
 astro dev run dags test insert_populacao_rds 2025-05-04
 astro dev run dags test ingest_diese 2025-01-01
+astro dev run dags test ibge_populacao 2025-05-09
 ```
 
 ### ☁️ Terraform (infraestrutura AWS):
@@ -90,11 +115,23 @@ terraform destroy          # Destroi todos os recursos criados
 
 ### 🐘 Conexão manual com PostgreSQL RDS:
 ```bash
-psql -h db-datamaster.chy482imol7a.us-east-2.rds.amazonaws.com -U postgres -d postgres
+psql -h ranking-municipios-db.chy482imol7a.us-east-2.rds.amazonaws.com -U postgres -d postgres
 ```
 
-### 🐳 Docker - Limpeza total:
+### 💣 Docker - Limpeza total:
 ```bash
 docker stop $(docker ps -aq)
 docker rm $(docker ps -aq)
 ```
+https://www.dieese.org.br/cesta/
+
+
+MSCK REPAIR TABLE bronze.cesta_basica;
+MSCK REPAIR TABLE bronze.aluguel_medio;
+MSCK REPAIR TABLE bronze.populacao_estimada;
+
+excluir query salvas
+
+aws athena delete-work-group \
+  --work-group bronze_workgroup \
+  --recursive-delete-option
