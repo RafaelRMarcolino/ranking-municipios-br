@@ -1,97 +1,119 @@
-from airflow.decorators import dag, task
-from airflow.utils.dates import days_ago
+from airflow import DAG
+from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator
 from airflow.hooks.base import BaseHook
-from airflow.sensors.base import PokeReturnValue
+from airflow.utils.dates import days_ago
 from datetime import datetime
 import pandas as pd
-import requests
 import boto3
 import json
+import requests
 from io import BytesIO
 
 BUCKET = "ranking-municipios-br"
 
-def build_s3_key(ds):
-    dt = datetime.strptime(ds, "%Y-%m-%d")
-    return f"bronze/ibge/populacao_estimada/ano={dt.year}/mes={dt.month:02d}/dia={dt.day:02d}/populacao.parquet"
+def salvar_populacao_completa(ds, **kwargs):
+    exec_dt = datetime.strptime(ds, "%Y-%m-%d")
+    data_str = exec_dt.strftime("%Y-%m-%d")
+    ano, mes, dia = exec_dt.year, exec_dt.month, exec_dt.day
 
+    # 🔗 Conexão HTTP do Airflow
+    conn = BaseHook.get_connection('ibge_api')
+    url = f"{conn.host}{conn.extra_dejson['endpoint']}"
+    print(f"🛰️ Baixando Excel do IBGE: {url}")
 
-@dag(
-    schedule_interval='@daily',
-    start_date=days_ago(1),
-    catchup=True,
-    tags=["ibge", "populacao", "athena"],
-    default_args={"owner": "airflow"},
-)
-def ibge_populacao_athena():
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise Exception(f"❌ Erro ao baixar o arquivo: {response.status_code}")
 
-    @task.sensor(poke_interval=30, timeout=300, mode='poke')
-    def is_api_available() -> PokeReturnValue:
-        api = BaseHook.get_connection('ibge_api')
-        url = f"{api.host}{api.extra_dejson['endpoint']}"
-        response = requests.head(url)
-        return PokeReturnValue(is_done=(response.status_code == 200), xcom_value=url)
+    xls = pd.ExcelFile(BytesIO(response.content))
 
-    @task
-    def baixar_e_salvar_parquet(url: str, ds: str = None) -> str:
-        print(f"🛰️ Iniciando download da API: {url}")
-        response = requests.get(url)
-        if response.status_code != 200:
-            raise Exception(f"Erro ao baixar arquivo: {response.status_code}")
+    #  Aba 'BRASIL E UFs'
+    df_uf = pd.read_excel(xls, sheet_name="BRASIL E UFs", skiprows=2)
+    df_uf.columns = ["unidade_federativa", "populacao"]
+    df_uf["populacao"] = (
+        df_uf["populacao"]
+        .astype(str)
+        .str.replace(r"[^\d]", "", regex=True)
+        .replace("", pd.NA)
+        .astype("Int64")
+    )
+    df_uf["data_carga"] = data_str
+    df_uf["ano"], df_uf["mes"], df_uf["dia"] = ano, mes, dia
 
-        df = pd.read_excel(response.content, skiprows=1)
-        df = df[["BRASIL E UNIDADES DA FEDERAÇÃO", "POPULAÇÃO ESTIMADA"]]
-        df.columns = ["unidade_federativa", "populacao"]
+    # Aba 'MUNICÍPIOS'
+    df_mun = pd.read_excel(xls, sheet_name="MUNICÍPIOS", skiprows=1)
+    df_mun = df_mun[["UF", "COD. UF", "COD. MUNIC", "NOME DO MUNICÍPIO", "POPULAÇÃO ESTIMADA"]]
+    df_mun.columns = ["uf", "cod_uf", "cod_municipio", "municipio", "populacao"]
 
-        df["populacao"] = (
-            df["populacao"]
+    # Conversões seguras para Int64 (compatível com Glue 'int')
+    for col in ["cod_uf", "cod_municipio", "populacao"]:
+        df_mun[col] = (
+            df_mun[col]
             .astype(str)
             .str.replace(r"[^\d]", "", regex=True)
             .replace("", pd.NA)
             .astype("Int64")
         )
 
-        exec_dt = datetime.strptime(ds, "%Y-%m-%d")
-        df["data_carga"] = exec_dt
-        df["ano"] = exec_dt.year
-        df["mes"] = exec_dt.month
-        df["dia"] = exec_dt.day
+    df_mun["data_carga"] = data_str
+    df_mun["ano"], df_mun["mes"], df_mun["dia"] = ano, mes, dia
 
-        print(f"✅ DataFrame carregado com {df.shape[0]} registros")
 
+    # Conexão com S3
+    s3_conn = BaseHook.get_connection('aws_s3')
+    s3 = boto3.client(
+        's3',
+        aws_access_key_id=s3_conn.login,
+        aws_secret_access_key=s3_conn.password,
+        region_name=json.loads(s3_conn.extra)["region_name"]
+    )
+
+    def salvar_parquet(df, path_key):
         buffer = BytesIO()
         df.to_parquet(buffer, index=False)
         buffer.seek(0)
+        s3.put_object(Bucket=BUCKET, Key=path_key, Body=buffer.getvalue())
+        print(f"✅ Parquet salvo: s3://{BUCKET}/{path_key}")
 
-        conn = BaseHook.get_connection('aws_s3')
-        s3 = boto3.client(
-            's3',
-            aws_access_key_id=conn.login,
-            aws_secret_access_key=conn.password,
-            region_name=json.loads(conn.extra)['region_name']
-        )
-
-        key = f"bronze/ibge/populacao_estimada/ano={exec_dt.year}/mes={exec_dt.month:02d}/dia={exec_dt.day:02d}/populacao.parquet"
-        s3.put_object(Bucket=BUCKET, Key=key, Body=buffer.getvalue())
-        s3_path = f"s3://{BUCKET}/{key}"
-        print(f"✅ Parquet salvo em: {s3_path}")
-        return s3_path
+    salvar_parquet(df_uf, f"bronze/ibge/populacao_estimada/brasil_uf/ano={ano}/mes={mes:02d}/dia={dia:02d}/populacao_uf.parquet")
+    salvar_parquet(df_mun, f"bronze/ibge/populacao_estimada/municipios/ano={ano}/mes={mes:02d}/dia={dia:02d}/populacao_municipios.parquet")
 
 
-    # Task Athena MSCK REPAIR
-    executar_msck_repair = AthenaOperator(
-        task_id="executar_msck_repair",
-        query="MSCK REPAIR TABLE bronze.populacao_estimada",
+# DAG
+default_args = {"owner": "airflow", "start_date": days_ago(1)}
+
+with DAG(
+    dag_id="ibge_populacao_completa",
+    default_args=default_args,
+    schedule_interval="@daily",
+    catchup=True,
+    tags=["ibge", "populacao", "bronze"]
+) as dag:
+
+    upload_task = PythonOperator(
+        task_id="upload_populacao_ufs_municipios",
+        python_callable=salvar_populacao_completa,
+        provide_context=True,
+        op_kwargs={"ds": "{{ ds }}"},
+    )
+
+    repair_ufs = AthenaOperator(
+        task_id="msck_repair_populacao_uf",
+        query="MSCK REPAIR TABLE bronze.populacao_estimada_uf",
         database="bronze",
         output_location=f"s3://{BUCKET}/athena-results/",
         workgroup="bronze_workgroup",
         aws_conn_id="aws_s3"
     )
 
-    # Encadeamento
-    url = is_api_available()
-    s3_path = baixar_e_salvar_parquet(url)
-    executar_msck_repair.set_upstream(s3_path)
+    repair_municipios = AthenaOperator(
+        task_id="msck_repair_populacao_municipios",
+        query="MSCK REPAIR TABLE bronze.populacao_estimada_municipios",
+        database="bronze",
+        output_location=f"s3://{BUCKET}/athena-results/",
+        workgroup="bronze_workgroup",
+        aws_conn_id="aws_s3"
+    )
 
-ibge_populacao_athena()
+    upload_task >> [repair_ufs, repair_municipios]
