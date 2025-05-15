@@ -6,4 +6,7 @@ apache-airflow-providers-amazon
 boto3
 pandas
 xlrd>=2.0.1
+selenium
+chromedriver-autoinstaller
+kaggle
 
