@@ -37,15 +37,32 @@ def ingest_aluguel_kaggle_athena():
         files = os.listdir("/tmp/data_kaggle")
         csv_file = next((f for f in files if f.endswith(".csv")), None)
         df = pd.read_csv(f"/tmp/data_kaggle/{csv_file}")
-        df.columns = [col.strip().lower().replace(" ", "_").replace("-", "_") for col in df.columns]
 
-        # Garantir que 'city' seja string
-        if "city" in df.columns:
-            df["city"] = df["city"].astype(str)
+        # Padronizar nomes das colunas
+        df.columns = [
+            col.strip().lower().replace(" ", "_").replace("-", "_")
+            for col in df.columns
+        ]
+
+        # Garantir tipos compatíveis
+        df["id"] = df["id"].astype(int)
+        df["city"] = df["city"].astype(str)
+        df["area"] = df["area"].astype("Int64")
+        df["rooms"] = df["rooms"].astype("Int64")
+        df["bathroom"] = df["bathroom"].astype("Int64")
+        df["parking_spaces"] = df["parking_spaces"].astype("Int64")
+        df["floor"] = df["floor"].astype("Int64")
+        df["animal"] = df["animal"].astype("Int64")
+        df["furniture"] = df["furniture"].astype("Int64")
+        df["hoa"] = df["hoa"].astype("Int64")
+        df["rent_amount"] = df["rent_amount"].astype("Int64")
+        df["property_tax"] = df["property_tax"].astype("Int64")
+        df["fire_insurance"] = df["fire_insurance"].astype("Int64")
+        df["total"] = df["total"].astype("Int64")
 
         # Adicionar colunas de data
         exec_dt = execution_date
-        df["data_carga"] = exec_dt
+        df["data_carga"] = exec_dt.strftime("%Y/%m/%d")
         df["ano"] = exec_dt.year
         df["mes"] = exec_dt.month
 
@@ -54,6 +71,7 @@ def ingest_aluguel_kaggle_athena():
         df.to_parquet(buffer, index=False)
         buffer.seek(0)
 
+        # Enviar ao S3
         aws_conn = BaseHook.get_connection("aws_s3")
         s3 = boto3.client(
             "s3",
