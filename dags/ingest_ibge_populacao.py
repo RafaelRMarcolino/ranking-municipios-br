@@ -12,7 +12,7 @@ from io import BytesIO
 
 BUCKET = "ranking-municipios-br"
 
-def salvar_populacao_completa(ds, **kwargs):
+def salvar_populacao_full(ds, **kwargs):
     exec_dt = datetime.strptime(ds, "%Y-%m-%d")
     data_str = exec_dt.strftime("%Y-%m-%d")
     ano, mes, dia = exec_dt.year, exec_dt.month, exec_dt.day
@@ -20,7 +20,7 @@ def salvar_populacao_completa(ds, **kwargs):
     # 🔗 Conexão HTTP do Airflow
     conn = BaseHook.get_connection('ibge_api')
     url = f"{conn.host}{conn.extra_dejson['endpoint']}"
-    print(f"🛰️ Baixando Excel do IBGE: {url}")
+    print(f"Baixando Excel do IBGE: {url}")
 
     response = requests.get(url)
     if response.status_code != 200:
@@ -84,7 +84,7 @@ def salvar_populacao_completa(ds, **kwargs):
 default_args = {"owner": "airflow", "start_date": days_ago(1)}
 
 with DAG(
-    dag_id="ibge_populacao_completa",
+    dag_id="ibge_populacao_full",
     default_args=default_args,
     schedule_interval="@daily",
     catchup=True,
@@ -93,7 +93,7 @@ with DAG(
 
     upload_task = PythonOperator(
         task_id="upload_populacao_ufs_municipios",
-        python_callable=salvar_populacao_completa,
+        python_callable=salvar_populacao_full,
         provide_context=True,
         op_kwargs={"ds": "{{ ds }}"},
     )
