@@ -60,18 +60,17 @@ def ingest_aluguel_kaggle_athena():
         df["fire_insurance"] = df["fire_insurance"].astype("Int64")
         df["total"] = df["total"].astype("Int64")
 
-        # Adicionar colunas de data
+        # Adicionar coluna de partição
         exec_dt = execution_date
-        df["data_carga"] = exec_dt.strftime("%Y/%m/%d")
-        df["ano"] = exec_dt.year
-        df["mes"] = exec_dt.month
+        data_carga_str = exec_dt.strftime("%Y-%m-%d")
+        df["data_carga"] = data_carga_str
 
         # Salvar em Parquet
         buffer = BytesIO()
         df.to_parquet(buffer, index=False)
         buffer.seek(0)
 
-        # Enviar ao S3
+        # Enviar ao S3 com partição única
         aws_conn = BaseHook.get_connection("aws_s3")
         s3 = boto3.client(
             "s3",
@@ -80,7 +79,7 @@ def ingest_aluguel_kaggle_athena():
             region_name=json.loads(aws_conn.extra)["region_name"]
         )
 
-        key = f"bronze/aluguel_medio/ano={exec_dt.year}/mes={exec_dt.month:02d}/aluguel.parquet"
+        key = f"bronze/aluguel_medio/data_carga={data_carga_str}/aluguel.parquet"
         s3_path = f"s3://{BUCKET}/{key}"
         s3.upload_fileobj(buffer, Bucket=BUCKET, Key=key)
 

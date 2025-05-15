@@ -11,16 +11,7 @@ terraform apply
 
 Essas são as conexões configuradas manualmente via interface Web do Airflow:
 
-### 1. PostgreSQL (AWS RDS)
-- **Conn ID**: `postgres_rds`
-- **Conn Type**: `Postgres`
-- **Host**: `ranking-municipios-db.chy482imol7a.us-east-2.rds.amazonaws.com`
-- **Database**: `db-datamaster`
-- **Login**: `postgres`
-- **Password**: `********`
-- **Port**: `5432`
-
-### 2. S3 (AWS)
+### 1. S3 (AWS)
 - **Conn ID**: `aws_s3`
 - **Conn Type**: `Amazon Web Services`
 - **AWS Access Key ID**: `AWS_ACCESS_KEY_ID`
@@ -30,26 +21,8 @@ Essas são as conexões configuradas manualmente via interface Web do Airflow:
 { "region_name": "us-east-2" }
 ```
 
-### 3. PostgreSQL Local
-- **Conn ID**: `postgres`
-- **Conn Type**: `Postgres`
-- **Host**: `postgres`
-- **Database**: *(opcional)*
-- **Login**: `postgres`
-- **Password**: `********`
-- **Port**: `5432`
 
-### 4. MinIO (alternativa ao S3)
-- **Conn ID**: `minio`
-- **Conn Type**: `Amazon Web Services`
-- **AWS Access Key ID**: `minio`
-- **AWS Secret Access Key**: `********`
-- **Extra**:
-```json
-{ "endpoint_url": "http://minio:9000" }
-```
-
-### 5. ibge_api
+### 2. ibge_api
 Para executar a DAG `ibge_populacao`, crie uma conexão HTTP no Airflow com os seguintes parâmetros:
 
 - **Connection Id**: `ibge_api`
@@ -66,7 +39,7 @@ Para executar a DAG `ibge_populacao`, crie uma conexão HTTP no Airflow com os s
 ```
 💡 Essa conexão será usada pelo sensor da DAG `ibge_populacao` para verificar a disponibilidade da URL antes de iniciar o download do arquivo `.xls`.
 
-### 6. diese_api
+### 3. diese_api
 Para executar a DAG `ingest_diese`, que automatiza o scraping de todas as cidades da cesta básica no site do DIEESE, crie uma conexão HTTP com:
 
 - **Connection Id**: `diese_api`
