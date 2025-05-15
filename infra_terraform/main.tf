@@ -28,6 +28,8 @@ resource "aws_glue_catalog_database" "bronze_db" {
   description = "Banco de dados do Glue para camada Bronze"
 }
 
+
+
 # 2. Tabela externa: cesta básica
 resource "aws_glue_catalog_table" "cesta_basica" {
   name          = "cesta_basica"
@@ -52,11 +54,6 @@ resource "aws_glue_catalog_table" "cesta_basica" {
 
     columns {
       name = "data_mes"
-      type = "string"
-    }
-
-    columns {
-      name = "data_carga"
       type = "string"
     }
 
@@ -179,6 +176,9 @@ resource "aws_glue_catalog_table" "cesta_basica" {
     type = "string"
   }
 }
+
+
+
 
 # 3. Tabela externa: aluguel médio
 resource "aws_glue_catalog_table" "aluguel_medio" {
