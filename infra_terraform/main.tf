@@ -356,7 +356,63 @@ resource "aws_glue_catalog_table" "populacao_estimada_municipios" {
 
   }
 
+  partition_keys {
+    name = "data_carga"
+    type = "string"
+  }
+}
 
+resource "aws_glue_catalog_table" "aluguel_medio_teste" {
+  name          = "aluguel_medio_teste"
+  database_name = aws_glue_catalog_database.bronze_db.name
+  table_type    = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification     = "parquet"
+    has_encrypted_data = "false"
+  }
+
+  storage_descriptor {
+    location      = "s3://ranking-municipios-br/bronze/aluguel_medio_teste/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+    compressed    = false
+
+    ser_de_info {
+      name                  = "parquet"
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+      parameters = {
+        "serialization.format" = "1"
+      }
+    }
+
+    columns {
+      name = "city"
+      type = "string"
+    }
+    columns {
+      name = "area"
+      type = "int"
+    }
+    columns {
+      name = "rooms"
+      type = "int"
+    }
+    columns {
+      name = "bathroom"
+      type = "int"
+    }
+    columns {
+      name = "rent_amount"
+      type = "int"
+    }
+    columns {
+      name = "total"
+      type = "int"
+    }
+  }
+
+  # 👇 Fora do storage_descriptor, como exige o Glue
   partition_keys {
     name = "data_carga"
     type = "string"
