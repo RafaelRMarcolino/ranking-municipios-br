@@ -118,11 +118,6 @@ aws athena delete-work-group \
 
 
 
-export AWS_ACCESS_KEY_ID=REMOVED
-export AWS_SECRET_ACCESS_KEY=FSPkdDzdnfLTwktPyvM6PUwx/h0otPj/6z7mkBL7
-astro dev restart
-
-
 
 Verificar se as chaves estão inclusas no docker
 astro dev bash scheduler
