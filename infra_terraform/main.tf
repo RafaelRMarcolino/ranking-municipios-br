@@ -18,6 +18,25 @@ resource "aws_athena_workgroup" "bronze" {
   }
 }
 
+resource "aws_athena_workgroup" "silver" {
+  name = "silver_workgroup"
+
+  configuration {
+    enforce_workgroup_configuration = true
+    result_configuration {
+      output_location = "s3://ranking-municipios-br/athena-results/"
+    }
+  }
+
+  state = "ENABLED"
+
+  tags = {
+    Environment = "dev"
+    Project     = "Ranking Municipios"
+  }
+}
+
+
 provider "aws" {
   region = var.region
 }
@@ -356,6 +375,98 @@ resource "aws_glue_catalog_table" "populacao_estimada_municipios" {
 
   }
 
+
+  partition_keys {
+    name = "data_carga"
+    type = "string"
+  }
+}
+
+# Banco de dados da camada Silver
+resource "aws_glue_catalog_database" "silver_db" {
+  name        = "silver"
+  description = "Banco de dados do Glue para camada Silver"
+}
+
+# Tabela externa: aluguel + população
+resource "aws_glue_catalog_table" "aluguel_populacao" {
+  name          = "aluguel_populacao"
+  database_name = aws_glue_catalog_database.silver_db.name
+  table_type    = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification     = "parquet"
+    has_encrypted_data = "false"
+  }
+
+  storage_descriptor {
+    location      = "s3://ranking-municipios-br/silver/aluguel_populacao/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+    compressed    = false
+
+    ser_de_info {
+      name                  = "parquet"
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "city"
+      type = "string"
+    }
+    columns {
+      name = "city_codigo"
+      type = "int"
+    }
+    columns {
+      name = "area"
+      type = "int"
+    }
+    columns {
+      name = "rooms"
+      type = "int"
+    }
+    columns {
+      name = "bathroom"
+      type = "int"
+    }
+    columns {
+      name = "parking_spaces"
+      type = "int"
+    }
+    columns {
+      name = "floor"
+      type = "int"
+    }
+    columns {
+      name = "animal"
+      type = "int"
+    }
+    columns {
+      name = "furniture"
+      type = "int"
+    }
+    columns {
+      name = "total"
+      type = "int"
+    }
+    columns {
+      name = "rent_amount"
+      type = "int"
+    }
+    columns {
+      name = "aluguel_m2"
+      type = "double"
+    }
+    columns {
+      name = "populacao"
+      type = "int"
+    }
+    columns {
+      name = "aluguel_per_capita"
+      type = "double"
+    }
+  }
 
   partition_keys {
     name = "data_carga"
