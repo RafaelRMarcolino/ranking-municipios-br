@@ -115,10 +115,6 @@ aws athena delete-work-group \
   --recursive-delete-option
 
 
-
-
-
-
 Verificar se as chaves estão inclusas no docker
 astro dev bash scheduler
 # ou
