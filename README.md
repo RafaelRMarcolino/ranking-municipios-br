@@ -135,15 +135,6 @@ echo $AWS_SECRET_ACCESS_KEY
 
 
 
-name airflow_spark_pipeline
-key
-REMOVED
-
-secret
-jHfWJzG2iF5vAWDDLicKXW/2/Cl5EdHZCLYgp4wk
-
-docker-compose down && docker-compose up -d
-
 
 
 export $(cat .env | xargs)
