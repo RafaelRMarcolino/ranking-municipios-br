@@ -108,3 +108,48 @@ excluir query salvas
 aws athena delete-work-group \
   --work-group bronze_workgroup \
   --recursive-delete-option
+
+
+
+aws athena delete-work-group \
+  --work-group silver_workgroup \
+  --recursive-delete-option
+
+
+Verificar se as chaves estão inclusas no docker
+astro dev bash scheduler
+# ou
+astro dev bash webserver
+
+
+export $(cat .env | xargs)
+
+
+
+
+
+# 1. Para e remove todos containers do projeto
+docker-compose down -v
+
+# 2. Lista containers que ainda estão ocupando portas importantes
+docker ps -a | grep -E '3000|2376|8080|8085|7077|8081|8082'
+
+# 3. Remove manualmente os containers zumbis que aparecerem
+docker rm -f $(docker ps -aq)
+
+# 4. Remove redes docker travadas
+docker network prune -f
+
+# 5. Remove volumes órfãos
+docker volume prune -f
+
+# 6. Confirma que não tem mais containers ocupando as portas
+docker ps -a
+
+# 7. Reinicia o projeto
+astro dev restart
+
+
+---------------------------------------------
+iniciar terraform
+terraform init
