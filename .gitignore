@@ -16,6 +16,5 @@ include/data/minio/
 *.json
 .terraform/
 *.deb
-.env
 deps/
 .spark-3.3.0-bin-hadoop3.tgz
