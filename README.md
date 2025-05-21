@@ -129,13 +129,6 @@ astro dev bash scheduler
 # ou
 astro dev bash webserver
 
-echo $AWS_ACCESS_KEY_ID
-echo $AWS_SECRET_ACCESS_KEY
-
-
-
-
-
 
 export $(cat .env | xargs)
 
