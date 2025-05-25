@@ -106,5 +106,12 @@ MSCK REPAIR TABLE bronze.populacao_estimada;
 excluir query salvas
 
 aws athena delete-work-group \
+  --work-group silver_workgroup \
+  --recursive-delete-option
+
+aws athena delete-work-group \
   --work-group bronze_workgroup \
   --recursive-delete-option
+
+
+terraform import aws_glue_catalog_database.silver_db 772056227406:silver
