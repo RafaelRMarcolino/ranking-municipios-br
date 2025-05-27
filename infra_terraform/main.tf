@@ -1,4 +1,10 @@
-# Provisionamento de Glue + Athena com Terraform
+provider "aws" {
+  region = var.region
+}
+
+# ====================
+# Athena Workgroups
+# ====================
 
 resource "aws_athena_workgroup" "bronze" {
   name = "bronze_workgroup"
@@ -18,27 +24,49 @@ resource "aws_athena_workgroup" "bronze" {
   }
 }
 
-provider "aws" {
-  region = var.region
+resource "aws_athena_workgroup" "silver" {
+  name = "silver_workgroup"
+
+  configuration {
+    enforce_workgroup_configuration = true
+    result_configuration {
+      output_location = "s3://ranking-municipios-br/athena-results/"
+    }
+  }
+
+  state = "ENABLED"
+
+  tags = {
+    Environment = "dev"
+    Project     = "Ranking Municipios"
+  }
 }
 
-# 1. Criar o banco de dados no Glue
+# ====================
+# Glue Databases
+# ====================
+
 resource "aws_glue_catalog_database" "bronze_db" {
   name        = "bronze"
   description = "Banco de dados do Glue para camada Bronze"
 }
 
+resource "aws_glue_catalog_database" "silver_db" {
+  name        = "silver"
+  description = "Banco de dados do Glue para camada Silver"
+}
 
+# ====================
+# Glue Tables - Bronze
+# ====================
 
-# 2. Tabela externa: cesta básica
 resource "aws_glue_catalog_table" "cesta_basica" {
   name          = "cesta_basica"
   database_name = aws_glue_catalog_database.bronze_db.name
   table_type    = "EXTERNAL_TABLE"
 
   parameters = {
-    classification     = "parquet"
-    has_encrypted_data = "false"
+    classification = "parquet"
   }
 
   storage_descriptor {
@@ -58,115 +86,12 @@ resource "aws_glue_catalog_table" "cesta_basica" {
     }
 
     columns {
-      name = "brasilia"
-      type = "double"
+      name = "cidade"
+      type = "string"
     }
+
     columns {
-      name = "campo_grande"
-      type = "double"
-    }
-    columns {
-      name = "cuiaba"
-      type = "double"
-    }
-    columns {
-      name = "goiania"
-      type = "double"
-    }
-    columns {
-      name = "belo_horizonte"
-      type = "double"
-    }
-    columns {
-      name = "rio_de_janeiro"
-      type = "double"
-    }
-    columns {
-      name = "sao_paulo"
-      type = "double"
-    }
-    columns {
-      name = "vitoria"
-      type = "double"
-    }
-    columns {
-      name = "curitiba"
-      type = "double"
-    }
-    columns {
-      name = "florianopolis"
-      type = "double"
-    }
-    columns {
-      name = "porto_alegre"
-      type = "double"
-    }
-    columns {
-      name = "belem"
-      type = "double"
-    }
-    columns {
-      name = "boa_vista"
-      type = "double"
-    }
-    columns {
-      name = "macapa"
-      type = "double"
-    }
-    columns {
-      name = "manaus"
-      type = "double"
-    }
-    columns {
-      name = "palmas"
-      type = "double"
-    }
-    columns {
-      name = "porto_velho"
-      type = "double"
-    }
-    columns {
-      name = "rio_branco"
-      type = "double"
-    }
-    columns {
-      name = "aracaju"
-      type = "double"
-    }
-    columns {
-      name = "fortaleza"
-      type = "double"
-    }
-    columns {
-      name = "joao_pessoa"
-      type = "double"
-    }
-    columns {
-      name = "maceio"
-      type = "double"
-    }
-    columns {
-      name = "natal"
-      type = "double"
-    }
-    columns {
-      name = "recife"
-      type = "double"
-    }
-    columns {
-      name = "salvador"
-      type = "double"
-    }
-    columns {
-      name = "sao_luis"
-      type = "double"
-    }
-    columns {
-      name = "teresina"
-      type = "double"
-    }
-    columns {
-      name = "macae"
+      name = "valor"
       type = "double"
     }
   }
@@ -177,18 +102,14 @@ resource "aws_glue_catalog_table" "cesta_basica" {
   }
 }
 
-
-
-
-# 3. Tabela externa: aluguel médio
+# Glue Table: aluguel_medio
 resource "aws_glue_catalog_table" "aluguel_medio" {
   name          = "aluguel_medio"
   database_name = aws_glue_catalog_database.bronze_db.name
   table_type    = "EXTERNAL_TABLE"
 
   parameters = {
-    classification     = "parquet"
-    has_encrypted_data = "false"
+    classification = "parquet"
   }
 
   storage_descriptor {
@@ -258,9 +179,7 @@ resource "aws_glue_catalog_table" "aluguel_medio" {
       name = "total"
       type = "int"
     }
-
   }
-
 
   partition_keys {
     name = "data_carga"
@@ -269,15 +188,14 @@ resource "aws_glue_catalog_table" "aluguel_medio" {
 }
 
 
-# 4b. Tabela externa: população estimada por UF
+# Glue Table: populacao_estimada_uf
 resource "aws_glue_catalog_table" "populacao_estimada_uf" {
   name          = "populacao_estimada_uf"
   database_name = aws_glue_catalog_database.bronze_db.name
   table_type    = "EXTERNAL_TABLE"
 
   parameters = {
-    classification     = "parquet"
-    has_encrypted_data = "false"
+    classification = "parquet"
   }
 
   storage_descriptor {
@@ -295,14 +213,11 @@ resource "aws_glue_catalog_table" "populacao_estimada_uf" {
       name = "unidade_federativa"
       type = "string"
     }
-
     columns {
       name = "populacao"
       type = "int"
     }
-
   }
-
 
   partition_keys {
     name = "data_carga"
@@ -310,16 +225,14 @@ resource "aws_glue_catalog_table" "populacao_estimada_uf" {
   }
 }
 
-
-# 4c. Tabela externa: população estimada por municípios
+# Glue Table: populacao_estimada_municipios
 resource "aws_glue_catalog_table" "populacao_estimada_municipios" {
   name          = "populacao_estimada_municipios"
   database_name = aws_glue_catalog_database.bronze_db.name
   table_type    = "EXTERNAL_TABLE"
 
   parameters = {
-    classification     = "parquet"
-    has_encrypted_data = "false"
+    classification = "parquet"
   }
 
   storage_descriptor {
@@ -353,9 +266,153 @@ resource "aws_glue_catalog_table" "populacao_estimada_municipios" {
       name = "populacao"
       type = "int"
     }
-
   }
 
+  partition_keys {
+    name = "data_carga"
+    type = "string"
+  }
+}
+
+# ====================
+# Glue Tables - Silver
+# ====================
+
+# Glue Table: aluguel_populacao
+resource "aws_glue_catalog_table" "aluguel_populacao" {
+  name          = "aluguel_populacao"
+  database_name = aws_glue_catalog_database.silver_db.name
+  table_type    = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification = "parquet"
+  }
+
+  storage_descriptor {
+    location      = "s3://ranking-municipios-br/silver/aluguel_populacao/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+    compressed    = false
+
+    ser_de_info {
+      name                  = "parquet"
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "area"
+      type = "int"
+    }
+    columns {
+      name = "rooms"
+      type = "int"
+    }
+    columns {
+      name = "bathroom"
+      type = "int"
+    }
+    columns {
+      name = "parking_spaces"
+      type = "int"
+    }
+    columns {
+      name = "floor"
+      type = "int"
+    }
+    columns {
+      name = "animal"
+      type = "int"
+    }
+    columns {
+      name = "furniture"
+      type = "int"
+    }
+    columns {
+      name = "rent_amount"
+      type = "int"
+    }
+    columns {
+      name = "total"
+      type = "int"
+    }
+    columns {
+      name = "city_codigo"
+      type = "int"
+    }
+    columns {
+      name = "city"
+      type = "string"
+    }
+    columns {
+      name = "aluguel_m2"
+      type = "double"
+    }
+    columns {
+      name = "populacao"
+      type = "int"
+    }
+    columns {
+      name = "aluguel_per_capita"
+      type = "double"
+    }
+  }
+
+  partition_keys {
+    name = "data_carga"
+    type = "string"
+  }
+}
+
+# Glue Table: cesta_basica_full
+resource "aws_glue_catalog_table" "cesta_basica_full" {
+  name          = "cesta_basica_full"
+  database_name = aws_glue_catalog_database.silver_db.name
+  table_type    = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification = "parquet"
+  }
+
+  storage_descriptor {
+    location      = "s3://ranking-municipios-br/silver/cesta_basica_full/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+    compressed    = false
+
+    ser_de_info {
+      name                  = "parquet"
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "city_code"
+      type = "double"
+    }
+    columns {
+      name = "cidade_cesta"
+      type = "string"
+    }
+    columns {
+      name = "uf"
+      type = "string"
+    }
+    columns {
+      name = "valor_cesta"
+      type = "double"
+    }
+    columns {
+      name = "cod_municipio"
+      type = "bigint"
+    }
+    columns {
+      name = "populacao"
+      type = "bigint"
+    }
+    columns {
+      name = "estado"
+      type = "string"
+    }
+  }
 
   partition_keys {
     name = "data_carga"
