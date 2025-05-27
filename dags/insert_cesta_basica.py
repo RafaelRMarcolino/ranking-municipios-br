@@ -23,7 +23,15 @@ def salvar_parquet_local_para_s3(ds, ti):
     df["data_mes"] = pd.to_datetime(df["data_mes"]).dt.strftime("%Y-%m-%d")
     data_carga = pd.to_datetime(ds).strftime("%Y-%m-%d")
 
+    # Identificar colunas de cidades (todas, exceto data_mes)
+    colunas_cidades = [col for col in df.columns if col != 'data_mes']
 
+    # Melt para formato long
+    df_melt = df.melt(id_vars=['data_mes'], value_vars=colunas_cidades, 
+                      var_name='cidade', value_name='valor')
+
+    # Adiciona data_carga
+    df_melt['data_carga'] = data_carga
 
     # Conectar ao S3
     conn = BaseHook.get_connection('aws_s3')
@@ -41,7 +49,7 @@ def salvar_parquet_local_para_s3(ds, ti):
 
     # Escrever em Parquet
     buffer = BytesIO()
-    df.to_parquet(buffer, index=False)
+    df_melt.to_parquet(buffer, index=False)
     buffer.seek(0)
     s3.upload_fileobj(buffer, BUCKET, key)
 

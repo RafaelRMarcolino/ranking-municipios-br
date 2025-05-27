@@ -15,22 +15,15 @@ def transform_silver_cesta_basica(data_carga: str):
     df_cesta = ler_parquet_s3(s3_hook, path_cesta)
     df_municipios = ler_parquet_s3(s3_hook, path_pop_mun)
 
-    cidades = [
-        "brasília", "campo_grande", "cuiabá", "goiânia", "belo_horizonte", "rio_de_janeiro",
-        "são_paulo", "vitória", "curitiba", "florianópolis", "porto_alegre", "belém", "boa_vista",
-        "macapá", "manaus", "palmas", "porto_velho", "rio_branco", "aracaju", "fortaleza",
-        "joão_pessoa", "maceió", "natal", "recife", "salvador", "são_luís", "teresina", "macaé"
-    ]
-
-    # Unpivot (melt)
-    df_unpivot = df_cesta.melt(id_vars=['data_mes'], value_vars=cidades, var_name='cidade', value_name='valor')
-    df_unpivot['cidade_norm'] = df_unpivot['cidade'].apply(lambda x: normalize_str(x).replace('_', ' '))
+    # Unpivot já feito na Bronze, agora só renomear
+    df_cesta = df_cesta.rename(columns={'cidade': 'cidade_cesta', 'valor': 'valor_cesta'})
+    df_cesta['cidade_norm'] = df_cesta['cidade_cesta'].apply(lambda x: normalize_str(x).replace('_', ' '))
 
     df_municipios['municipio_norm'] = df_municipios['municipio'].apply(normalize_str)
 
     # Merge com municipios
     df_join = pd.merge(
-        df_unpivot,
+        df_cesta,
         df_municipios,
         left_on='cidade_norm',
         right_on='municipio_norm',
@@ -52,7 +45,7 @@ def transform_silver_cesta_basica(data_carga: str):
             "joão_pessoa": "PB", "maceió": "AL", "natal": "RN", "recife": "PE", 
             "salvador": "BA", "são_luís": "MA", "teresina": "PI"
         }
-        return mapa.get(row['cidade'], None)
+        return mapa.get(row['cidade_cesta'], None)
 
     df_join['uf'] = df_join.apply(preencher_uf, axis=1)
 
@@ -68,7 +61,8 @@ def transform_silver_cesta_basica(data_carga: str):
     df_join['city_code'] = df_join['uf'].map(uf_para_codigo).astype(float)
     df_join['estado'] = df_join['city_code'].map(uf_para_nome)
 
-    df_silver = df_join[['city_code', 'cidade', 'uf', 'valor', 'cod_municipio', 'populacao', 'estado', 'data_carga']]
+    # DataFrame final com novos nomes
+    df_silver = df_join[['city_code', 'cidade_cesta', 'uf', 'valor_cesta', 'cod_municipio', 'populacao', 'estado', 'data_carga']]
 
     print(f"✅ DataFrame final: {len(df_silver)} registros")
 
@@ -77,9 +71,9 @@ def transform_silver_cesta_basica(data_carga: str):
 
     columns = [
         {'Name': 'city_code', 'Type': 'double'},
-        {'Name': 'cidade', 'Type': 'string'},
+        {'Name': 'cidade_cesta', 'Type': 'string'},
         {'Name': 'uf', 'Type': 'string'},
-        {'Name': 'valor', 'Type': 'double'},
+        {'Name': 'valor_cesta', 'Type': 'double'},
         {'Name': 'cod_municipio', 'Type': 'bigint'},
         {'Name': 'populacao', 'Type': 'bigint'},
         {'Name': 'estado', 'Type': 'string'}

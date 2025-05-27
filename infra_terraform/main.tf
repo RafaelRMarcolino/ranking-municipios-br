@@ -60,7 +60,6 @@ resource "aws_glue_catalog_database" "silver_db" {
 # Glue Tables - Bronze
 # ====================
 
-# Glue Table: cesta_basica
 resource "aws_glue_catalog_table" "cesta_basica" {
   name          = "cesta_basica"
   database_name = aws_glue_catalog_database.bronze_db.name
@@ -85,7 +84,16 @@ resource "aws_glue_catalog_table" "cesta_basica" {
       name = "data_mes"
       type = "string"
     }
-    # ... demais colunas ...
+
+    columns {
+      name = "cidade"
+      type = "string"
+    }
+
+    columns {
+      name = "valor"
+      type = "double"
+    }
   }
 
   partition_keys {
@@ -123,7 +131,54 @@ resource "aws_glue_catalog_table" "aluguel_medio" {
       name = "city"
       type = "string"
     }
-    # ... demais colunas ...
+    columns {
+      name = "area"
+      type = "int"
+    }
+    columns {
+      name = "rooms"
+      type = "int"
+    }
+    columns {
+      name = "bathroom"
+      type = "int"
+    }
+    columns {
+      name = "parking_spaces"
+      type = "int"
+    }
+    columns {
+      name = "floor"
+      type = "int"
+    }
+    columns {
+      name = "animal"
+      type = "int"
+    }
+    columns {
+      name = "furniture"
+      type = "int"
+    }
+    columns {
+      name = "hoa"
+      type = "int"
+    }
+    columns {
+      name = "rent_amount"
+      type = "int"
+    }
+    columns {
+      name = "property_tax"
+      type = "int"
+    }
+    columns {
+      name = "fire_insurance"
+      type = "int"
+    }
+    columns {
+      name = "total"
+      type = "int"
+    }
   }
 
   partition_keys {
@@ -131,6 +186,7 @@ resource "aws_glue_catalog_table" "aluguel_medio" {
     type = "string"
   }
 }
+
 
 # Glue Table: populacao_estimada_uf
 resource "aws_glue_catalog_table" "populacao_estimada_uf" {
@@ -333,7 +389,7 @@ resource "aws_glue_catalog_table" "cesta_basica_full" {
       type = "double"
     }
     columns {
-      name = "cidade"
+      name = "cidade_cesta"
       type = "string"
     }
     columns {
@@ -341,7 +397,7 @@ resource "aws_glue_catalog_table" "cesta_basica_full" {
       type = "string"
     }
     columns {
-      name = "valor"
+      name = "valor_cesta"
       type = "double"
     }
     columns {
