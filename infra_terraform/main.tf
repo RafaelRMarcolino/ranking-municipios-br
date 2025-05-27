@@ -306,3 +306,60 @@ resource "aws_glue_catalog_table" "aluguel_populacao" {
     type = "string"
   }
 }
+
+# Glue Table: cesta_basica_full
+resource "aws_glue_catalog_table" "cesta_basica_full" {
+  name          = "cesta_basica_full"
+  database_name = aws_glue_catalog_database.silver_db.name
+  table_type    = "EXTERNAL_TABLE"
+
+  parameters = {
+    classification = "parquet"
+  }
+
+  storage_descriptor {
+    location      = "s3://ranking-municipios-br/silver/cesta_basica_full/"
+    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+    compressed    = false
+
+    ser_de_info {
+      name                  = "parquet"
+      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    }
+
+    columns {
+      name = "city_code"
+      type = "double"
+    }
+    columns {
+      name = "cidade"
+      type = "string"
+    }
+    columns {
+      name = "uf"
+      type = "string"
+    }
+    columns {
+      name = "valor"
+      type = "double"
+    }
+    columns {
+      name = "cod_municipio"
+      type = "bigint"
+    }
+    columns {
+      name = "populacao"
+      type = "bigint"
+    }
+    columns {
+      name = "city_name"
+      type = "string"
+    }
+  }
+
+  partition_keys {
+    name = "data_carga"
+    type = "string"
+  }
+}
