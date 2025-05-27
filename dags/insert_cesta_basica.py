@@ -23,8 +23,7 @@ def salvar_parquet_local_para_s3(ds, ti):
     df["data_mes"] = pd.to_datetime(df["data_mes"]).dt.strftime("%Y-%m-%d")
     data_carga = pd.to_datetime(ds).strftime("%Y-%m-%d")
 
-    # ❌ Não incluir 'data_carga' como coluna (é usada apenas na partição)
-    # df["data_carga"] = data_carga
+
 
     # Conectar ao S3
     conn = BaseHook.get_connection('aws_s3')

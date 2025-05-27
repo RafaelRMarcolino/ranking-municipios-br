@@ -353,7 +353,7 @@ resource "aws_glue_catalog_table" "cesta_basica_full" {
       type = "bigint"
     }
     columns {
-      name = "city_name"
+      name = "estado"
       type = "string"
     }
   }

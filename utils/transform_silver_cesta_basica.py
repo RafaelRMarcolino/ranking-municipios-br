@@ -56,7 +56,7 @@ def transform_silver_cesta_basica(data_carga: str):
 
     df_join['uf'] = df_join.apply(preencher_uf, axis=1)
 
-    # Mapeamento UF -> city_code e city_name
+    # Mapeamento UF -> city_code e estado
     mapeamento = criar_df_mapeamento_estado_pandas()
     uf_para_codigo = {
         "RO": 110, "AC": 120, "AM": 130, "RR": 140, "PA": 150, "AP": 160, "TO": 170, 
@@ -66,9 +66,9 @@ def transform_silver_cesta_basica(data_carga: str):
     uf_para_nome = {row['city_codigo']: row['city_nome'] for _, row in mapeamento.iterrows()}
 
     df_join['city_code'] = df_join['uf'].map(uf_para_codigo).astype(float)
-    df_join['city_name'] = df_join['city_code'].map(uf_para_nome)
+    df_join['estado'] = df_join['city_code'].map(uf_para_nome)
 
-    df_silver = df_join[['city_code', 'cidade', 'uf', 'valor', 'cod_municipio', 'populacao', 'city_name', 'data_carga']]
+    df_silver = df_join[['city_code', 'cidade', 'uf', 'valor', 'cod_municipio', 'populacao', 'estado', 'data_carga']]
 
     print(f"✅ DataFrame final: {len(df_silver)} registros")
 
@@ -82,7 +82,7 @@ def transform_silver_cesta_basica(data_carga: str):
         {'Name': 'valor', 'Type': 'double'},
         {'Name': 'cod_municipio', 'Type': 'bigint'},
         {'Name': 'populacao', 'Type': 'bigint'},
-        {'Name': 'city_name', 'Type': 'string'}
+        {'Name': 'estado', 'Type': 'string'}
     ]
 
     adicionar_particao_glue(
