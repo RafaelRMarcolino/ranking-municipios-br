@@ -58,7 +58,8 @@ def transform_silver_cesta_basica(data_carga: str):
     }
     uf_para_nome = {row['city_codigo']: row['city_nome'] for _, row in mapeamento.iterrows()}
 
-    df_join['city_code'] = df_join['uf'].map(uf_para_codigo).astype(float)
+    # ✅ city_code como Int64
+    df_join['city_code'] = df_join['uf'].map(uf_para_codigo).astype('Int64')
     df_join['estado'] = df_join['city_code'].map(uf_para_nome)
 
     # DataFrame final com novos nomes
@@ -69,8 +70,9 @@ def transform_silver_cesta_basica(data_carga: str):
     output_s3_path = f"s3://{BUCKET}/silver/cesta_basica_full/data_carga={data_carga}/"
     salvar_parquet_s3(s3_hook, df_silver, output_s3_path, filename="cesta_basica_full")
 
+    # ✅ Ajuste do schema
     columns = [
-        {'Name': 'city_code', 'Type': 'double'},
+        {'Name': 'city_code', 'Type': 'int'},  # Corrigido de 'double' para 'int'
         {'Name': 'cidade_cesta', 'Type': 'string'},
         {'Name': 'uf', 'Type': 'string'},
         {'Name': 'valor_cesta', 'Type': 'double'},
@@ -86,3 +88,5 @@ def transform_silver_cesta_basica(data_carga: str):
         s3_location=output_s3_path,
         columns=columns
     )
+    
+    print("✅ Transformação Silver Cesta Básica finalizada com sucesso!")

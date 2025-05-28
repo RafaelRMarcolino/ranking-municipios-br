@@ -1,80 +1,85 @@
-import pandas as pd
-import random
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from utils.pandas_utils import normalize_str, criar_df_mapeamento_estado_pandas
 from utils.aws_utils import ler_parquet_s3, salvar_parquet_s3, adicionar_particao_glue
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+import pandas as pd
 
 BUCKET = "ranking-municipios-br"
 
-def transformar_dados_silver(data_carga: str):
-    print(f"✅ Início do script Silver Aluguel População - Pandas para data_carga={data_carga}")
+def transformar_dados_gold_aluguel_populacao(data_carga: str):
+    print(f"✅ [GOLD] Início da transformação - data_carga={data_carga}")
     s3_hook = S3Hook(aws_conn_id='aws_s3')
 
-    path_aluguel = f"s3://{BUCKET}/bronze/aluguel_medio/data_carga={data_carga}/"
-    path_pop_mun = f"s3://{BUCKET}/bronze/ibge/populacao_estimada/municipios/data_carga={data_carga}/"
+    path_silver = f"s3://{BUCKET}/silver/aluguel_populacao/data_carga={data_carga}/"
+    print(f"✅ [GOLD] Lendo dados de: {path_silver}")
 
-    df_aluguel = ler_parquet_s3(s3_hook, path_aluguel)
-    df_pop_mun = ler_parquet_s3(s3_hook, path_pop_mun)
+    df_silver = ler_parquet_s3(s3_hook, path_silver)
 
-    # Transformações numéricas
-    print("✅ Transformando colunas numéricas...")
-    df_aluguel["area"] = pd.to_numeric(df_aluguel["area"], errors="coerce")
-    df_aluguel["rent_amount"] = pd.to_numeric(df_aluguel["rent_amount"], errors="coerce")
-    df_aluguel["total"] = pd.to_numeric(df_aluguel["total"], errors="coerce")
+    # Conversão de tipos
+    cols_int = ["rooms", "bathroom", "parking_spaces", "floor", "animal", "furniture"]
+    cols_float = ["area", "rent_amount", "total", "aluguel_m2", "populacao", "aluguel_per_capita"]
 
-    df_aluguel = df_aluguel.drop(columns=["id", "hoa", "property_tax", "fire_insurance", "city"], errors="ignore")
-    df_aluguel = df_aluguel.dropna(subset=["area", "total"])
+    print("✅ [GOLD] Convertendo colunas numéricas...")
 
-    # Mapeamento de estados
-    df_mapeamento = criar_df_mapeamento_estado_pandas()
-    codigos_estado = df_mapeamento["city_codigo"].tolist()
+    for col in cols_int:
+        df_silver[col] = pd.to_numeric(df_silver[col], errors='coerce').astype('Int64')
 
-    df_aluguel["city_codigo"] = [random.choice(codigos_estado) for _ in range(len(df_aluguel))]
-    df_aluguel = df_aluguel.merge(df_mapeamento, on="city_codigo", how="left").rename(columns={"city_nome": "city"})
+    for col in cols_float:
+        df_silver[col] = pd.to_numeric(df_silver[col], errors='coerce').astype(float)
 
-    df_aluguel["aluguel_m2"] = round(df_aluguel["total"] / df_aluguel["area"], 2)
+    print("✅ [GOLD] Criando novos indicadores...")
 
-    # Normalização
-    df_pop_mun = df_pop_mun.rename(columns={"municipio": "city"})
-    df_pop_mun["city"] = df_pop_mun["city"].apply(normalize_str)
-    df_aluguel["city"] = df_aluguel["city"].apply(normalize_str)
+    df_silver["aluguel_m2_calculado"] = df_silver.apply(
+        lambda row: row["rent_amount"] / row["area"] if pd.notnull(row["area"]) and row["area"] > 0 else None,
+        axis=1
+    ).astype(float)
 
-    # Join final
-    print("✅ Realizando join final...")
-    df_final = df_aluguel.merge(df_pop_mun[['city', 'populacao']], on='city', how='inner')
+    df_silver["total_cost"] = (df_silver["rent_amount"] + df_silver["total"]).astype(float)
 
-    if df_final.empty:
-        print("⚠️ DataFrame final está vazio. Abortando salvamento.")
+    df_silver["aluguel_per_room"] = df_silver.apply(
+        lambda row: row["rent_amount"] / row["rooms"] if pd.notnull(row["rooms"]) and row["rooms"] > 0 else None,
+        axis=1
+    ).astype(float)
+
+    print("✅ [GOLD] Ajustando tipos...")
+
+    # Seleção para GOLD
+    df_gold = df_silver[["city", "aluguel_m2_calculado", "total_cost", "aluguel_per_room"]].copy()
+    df_gold["data_carga"] = data_carga
+
+    print("✅ [GOLD] Tipos finais do DataFrame GOLD:")
+    print(df_gold.dtypes)
+
+    print(f"✅ [GOLD] DataFrame gerado com {len(df_gold)} registros.")
+
+    if df_gold.empty:
+        print("⚠️ [GOLD] DataFrame vazio. Abortando salvamento.")
         return
 
-    df_final["aluguel_per_capita"] = round(df_final["total"] / df_final["populacao"], 6)
-    df_final["data_carga"] = data_carga
+    output_s3_path = f"s3://{BUCKET}/gold/aluguel_populacao_gold/data_carga={data_carga}/"
+    print(f"✅ [GOLD] Salvando Parquet em: {output_s3_path}")
 
-    output_s3_path = f"s3://{BUCKET}/silver/aluguel_populacao/data_carga={data_carga}/"
-    salvar_parquet_s3(s3_hook, df_final, output_s3_path, filename="aluguel_populacao")
+    salvar_parquet_s3(
+        s3_hook,
+        df_gold,
+        output_s3_path,
+        filename="aluguel_populacao_gold"
+    )
 
-    # Definindo colunas para Glue
+    # Schema conforme Glue Catalog
     columns = [
-        {'Name': 'area', 'Type': 'int'},
-        {'Name': 'rooms', 'Type': 'int'},
-        {'Name': 'bathroom', 'Type': 'int'},
-        {'Name': 'parking_spaces', 'Type': 'int'},
-        {'Name': 'floor', 'Type': 'int'},
-        {'Name': 'animal', 'Type': 'int'},
-        {'Name': 'furniture', 'Type': 'int'},
-        {'Name': 'rent_amount', 'Type': 'int'},
-        {'Name': 'total', 'Type': 'int'},
-        {'Name': 'city_codigo', 'Type': 'int'},
         {'Name': 'city', 'Type': 'string'},
-        {'Name': 'aluguel_m2', 'Type': 'double'},
-        {'Name': 'populacao', 'Type': 'int'},
-        {'Name': 'aluguel_per_capita', 'Type': 'double'}
+        {'Name': 'aluguel_m2_calculado', 'Type': 'double'},
+        {'Name': 'total_cost', 'Type': 'double'},
+        {'Name': 'aluguel_per_room', 'Type': 'double'}
     ]
 
+    print(f"✅ [GOLD] Adicionando partição no Glue para data_carga={data_carga}")
+
     adicionar_particao_glue(
-        database="silver",
-        table="aluguel_populacao",
+        database="gold",
+        table="aluguel_populacao_gold",
         data_carga=data_carga,
         s3_location=output_s3_path,
         columns=columns
     )
+
+    print("✅ [GOLD] Transformação finalizada com sucesso!")
