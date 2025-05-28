@@ -1,7 +1,7 @@
 from airflow.decorators import dag, task
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator
 from datetime import datetime
-from utils.transform_silver_cesta_basica import transform_silver_cesta_basica
+from transformations.transform_silver_cesta_basica import transform_silver_cesta_basica
 
 BUCKET = "ranking-municipios-br"
 
