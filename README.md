@@ -1,10 +1,10 @@
-# 🏛️ Projeto: Ranking de Municípios Brasileiros
+# 🏩️ Projeto: Ranking de Municípios Brasileiros
 
 Este projeto realiza a coleta, transformação e análise de dados públicos (IBGE, DIEESE, Kaggle, etc.) para gerar indicadores socioeconômicos por município. Utiliza Apache Airflow com Astro CLI para orquestração, AWS (S3, Athena, Glue) para armazenamento e análise, e Docker para execução local.
 
 ---
 
-## 🧭 Sumário
+## 🛍️ Sumário
 
 1. [Primeiro Acesso à AWS](#primeiro-acesso-à-aws)
 2. [Pré-Requisitos](#pré-requisitos)
@@ -44,8 +44,8 @@ aws configure
 Insira:
 
 ```
-AWS Access Key ID [None]: Axxxxxx
-AWS Secret Access Key [None]: rxxxxxxxx
+AWS Access Key ID [None]: Axxxxxxxxxx
+AWS Secret Access Key [None]: rxxxxxxxxx
 Default region name [None]: us-east-2
 Default output format [None]: json
 ```
@@ -205,7 +205,7 @@ Essas são as conexões configuradas manualmente via interface Web do Airflow:
 
 ---
 
-## 🧹 Encerrando e Limpando Recursos
+## 🪝 Encerrando e Limpando Recursos
 
 ### 🔄 Parar containers e ambiente local:
 
@@ -220,7 +220,7 @@ cd infra_terraform
 terraform destroy
 ```
 
-### 🧼 Apagar todos os containers Docker (opcional):
+### 🪤 Apagar todos os containers Docker (opcional):
 
 ```bash
 docker stop $(docker ps -aq)
