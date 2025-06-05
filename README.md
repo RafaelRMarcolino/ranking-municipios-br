@@ -26,7 +26,7 @@ Credenciais:
 
 ```
 IAM Username: user-data-master
-Senha: 1kuwS57_
+Senha: xx
 ```
 
 ### 💻 Acesso via Terminal (AWS CLI)
