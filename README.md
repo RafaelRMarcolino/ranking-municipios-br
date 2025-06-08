@@ -4,6 +4,9 @@ Este projeto realiza a coleta, transformação e análise de dados públicos (IB
 
 ---
 
+![image](https://github.com/user-attachments/assets/3b5dca7d-889d-4541-a198-d92048ff1a02)
+
+
 ## 🛍️ Sumário
 
 1. [Primeiro Acesso à AWS](#primeiro-acesso-à-aws)
