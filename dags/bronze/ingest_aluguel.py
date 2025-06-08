@@ -11,13 +11,13 @@ from io import BytesIO
 BUCKET = "ranking-municipios-br"
 
 @dag(
-    dag_id="ingest_aluguel_kaggle_athena",
+    dag_id="bronze_aluguel",
     schedule_interval=None,
-    start_date=datetime(2024, 1, 1),
+    start_date=datetime(2025, 5, 1),
     catchup=False,
     tags=["aluguel", "bronze", "athena"]
 )
-def ingest_aluguel_kaggle_athena():
+def ingest_aluguel():
 
     @task()
     def processar_e_salvar_s3(execution_date=None) -> str:
@@ -98,4 +98,4 @@ def ingest_aluguel_kaggle_athena():
     s3_path = processar_e_salvar_s3()
     executar_msck_repair.set_upstream(s3_path)
 
-dag = ingest_aluguel_kaggle_athena()
+dag = ingest_aluguel()

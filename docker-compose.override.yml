@@ -4,14 +4,20 @@ services:
   webserver:
     networks:
       - ndsnet
+    env_file:
+      - .env
 
   scheduler:
     networks:
       - ndsnet
+    env_file:
+      - .env
 
   triggerer:
     networks:
       - ndsnet
+    env_file:
+      - .env
 
   spark-master:
     image: bde2020/spark-master:3.3.0-hadoop3.3

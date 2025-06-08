@@ -78,7 +78,7 @@ def salvar_populacao_full(ds, **kwargs):
 default_args = {"owner": "airflow", "start_date": days_ago(1)}
 
 with DAG(
-    dag_id="ibge_populacao_full",
+    dag_id="bronze_ibge_populacao",
     default_args=default_args,
     schedule_interval="@daily",
     catchup=True,
