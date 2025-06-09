@@ -4,10 +4,10 @@ Este projeto realiza a coleta, transformação e análise de dados públicos (IB
 
 ---
 
-![image](https://github.com/user-attachments/assets/3b5dca7d-889d-4541-a198-d92048ff1a02)
+![image](https://github.com/user-attachments/assets/e4a818a4-b9a6-4c25-8158-5315c00e903e)
 
 
-## 🛍️ Sumário
+## 🎩️ Sumário
 
 1. [Primeiro Acesso à AWS](#primeiro-acesso-à-aws)
 2. [Pré-Requisitos](#pré-requisitos)
@@ -23,7 +23,7 @@ Este projeto realiza a coleta, transformação e análise de dados públicos (IB
 
 ### 👤 Acesso via Console Web
 
-Acesse o console da AWS: 👉 [https://772056227406.signin.aws.amazon.com/console](https://772056227406.signin.aws.amazon.com/console)
+Acesse o console da AWS: 👉 https://772056227406.signin.aws.amazon.com/console
 
 Credenciais:
 
@@ -36,7 +36,7 @@ Senha: xx
 
 Pré-requisitos:
 
-* AWS CLI instalado ([https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html))
+- AWS CLI instalado (https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html)
 
 Configure com:
 
@@ -89,7 +89,7 @@ ranking-municipios-br/
 ├── Dockerfile
 ├── docker-compose.override.yml
 ├── requirements.txt
-├── README.md
+└── README.md
 ```
 
 ---
@@ -107,21 +107,21 @@ cd ranking-municipios-br
 
 #### Instale as dependências
 
-* Astro CLI: [https://docs.astronomer.io/astro/cli/install](https://docs.astronomer.io/astro/cli/install)
+- Astro CLI: https://docs.astronomer.io/astro/cli/install
 
 ```bash
 curl -sSL https://install.astronomer.io | sudo bash
 ```
 
-* Docker: [https://www.docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop)
+- Docker: https://www.docker.com/products/docker-desktop
 
-* Terraform: [https://developer.hashicorp.com/terraform/downloads](https://developer.hashicorp.com/terraform/downloads)
+- Terraform: https://developer.hashicorp.com/terraform/downloads
 
 ```bash
 sudo apt update && sudo apt install terraform
 ```
 
-* Python (Linux):
+- Python (Linux):
 
 ```bash
 sudo apt install python3.10 python3.10-venv python3.10-dev
@@ -133,7 +133,7 @@ sudo apt install python3.10 python3.10-venv python3.10-dev
 astro dev start
 ```
 
-Acesse: [http://localhost:8080](http://localhost:8080)
+Acesse: http://localhost:8080
 
 #### Provisionar com Terraform
 
@@ -145,7 +145,7 @@ terraform apply
 
 ### 2. Execução por Máquina Virtual
 
-Acesse o console da AWS: 👉 [https://772056227406.signin.aws.amazon.com/console](https://772056227406.signin.aws.amazon.com/console)
+Acesse o console da AWS: 👉 https://772056227406.signin.aws.amazon.com/console
 
 Instancie uma EC2 e conecte via:
 
@@ -162,55 +162,45 @@ astro dev start
 
 ---
 
-## 🔌 Conexões do Airflow
+## 🔌 Criação de Conexões no Airflow via Script
 
-Essas são as conexões configuradas manualmente via interface Web do Airflow:
+As conexões agora são criadas automaticamente via script Python localizado em `scripts/init_airflow_connections.py`. Esse script garante que todas as conexões essenciais estejam configuradas corretamente ao iniciar o ambiente.
 
-### 1. S3 (AWS)
+### ✅ Conexões criadas:
 
-* Conn ID: `aws_s3`
-* Conn Type: Amazon Web Services
-* AWS Access Key ID: `AWS_ACCESS_KEY_ID`
-* AWS Secret Access Key: `********`
-* Extra: `{ "region_name": "us-east-2" }`
+- `aws_s3` – Amazon Web Services
+- `ibge_api` – Conexão HTTP para o IBGE
+- `diese_api` – Conexão HTTP para o DIEESE
+- `kaggle_default` – Conexão para autenticação na API do Kaggle
 
-### 2. ibge\_api
+### ⚙️ Como executar:
 
-* Connection Id: `ibge_api`
-* Type: HTTP
-* Host: `https://ftp.ibge.gov.br`
-* Extra:
+Com o ambiente Airflow ativo (via `astro dev start`), entre no container:
 
-```json
-{
-  "endpoint": "/Estimativas_de_Populacao/Estimativas_2024/POP2024_20241230.xls",
-  "headers": {}
-}
+```bash
+astro dev bash
 ```
 
-### 3. diese\_api
+E execute o script:
 
-* Connection Id: `diese_api`
-* Type: HTTP
-* Host: `https://www.dieese.org.br`
-
-### 4. kaggle\_default
-
-* Connection Id: `kaggle_default`
-* Type: generic
-* login: `datamasterrafael`
-* password: `80243e1ba78e7efb5c5f678cad1be8b5`
-* extra:
-
-```json
-{ "file_path": "/home/astro/.kaggle/kaggle.json" }
+```bash
+python scripts/init_airflow_connections.py
 ```
+
+As credenciais da AWS são lidas automaticamente do arquivo `.env`:
+
+```env
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=xxx...
+```
+
+Você pode adicionar mais conexões no próprio script conforme necessário. Essa abordagem evita configurações manuais via UI e facilita a reprodutibilidade do projeto.
 
 ---
 
 ## 🪝 Encerrando e Limpando Recursos
 
-### 🔄 Parar containers e ambiente local:
+### ♻️ Parar containers e ambiente local:
 
 ```bash
 astro dev stop
@@ -230,7 +220,7 @@ docker stop $(docker ps -aq)
 docker rm $(docker ps -aq)
 ```
 
-### 🗑️ Deletar Workgroups do Athena (caso necessário):
+### 🖽️ Deletar Workgroups do Athena (caso necessário):
 
 ```bash
 aws athena delete-work-group --work-group silver_workgroup --recursive-delete-option
