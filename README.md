@@ -1,6 +1,6 @@
 # 🏩️ Projeto: Ranking de Municípios Brasileiros
 
-Este projeto realiza a coleta, transformação e análise de dados públicos (IBGE, DIEESE, Kaggle, etc.) para gerar indicadores socioeconômicos por município. Utiliza Apache Airflow com Astro CLI para orquestração, AWS (S3, Athena, Glue) para armazenamento e análise, e Docker para execução local.
+Este projeto realiza a coleta, transformação e análise de dados públicos (IBGE, DIEESE, Kaggle) para gerar indicadores socioeconômicos por município. Utiliza Apache Airflow com Astro CLI para orquestração, AWS (S3, Athena, Glue) para armazenamento e análise, para visualização de graficos QuickSight e Docker para execução local.
 
 ---
 
