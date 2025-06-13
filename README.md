@@ -184,6 +184,8 @@ astro dev bash
 E execute o script:
 
 ```bash
+docker ps
+docker exec -it ranking-municipios-br_xxxxx-webserver-1 bash
 python scripts/init_airflow_connections.py
 ```
 
