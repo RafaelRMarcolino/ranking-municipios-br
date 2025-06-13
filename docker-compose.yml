@@ -1,0 +1,11 @@
+version: "3.1"
+services:
+  webserver:
+    build:
+      context: .
+  scheduler:
+    build:
+      context: .
+  triggerer:
+    build:
+      context: .

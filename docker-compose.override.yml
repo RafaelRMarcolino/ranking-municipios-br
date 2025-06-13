@@ -1,4 +1,5 @@
 version: "3.1"
+
 services:
 
   webserver:
@@ -6,12 +7,16 @@ services:
       - ndsnet
     env_file:
       - .env
+    # volumes:
+    #   - ./dags:/usr/local/airflow/dags
 
   scheduler:
     networks:
       - ndsnet
     env_file:
       - .env
+    # volumes:
+    #   - ./dags:/usr/local/airflow/dags
 
   triggerer:
     networks:
@@ -23,8 +28,8 @@ services:
     image: bde2020/spark-master:3.3.0-hadoop3.3
     container_name: spark-master
     ports:
-      - "8082:8080"
-      - "7077:7077"
+      - "8082:8080"   # Spark UI (pode acessar via http://localhost:8082)
+      - "7077:7077"   # Spark cluster port
     environment:
       - INIT_DAEMON_STEP=setup_spark
     networks:
@@ -36,7 +41,7 @@ services:
     depends_on:
       - spark-master
     ports:
-      - "8081:8081"
+      - "8081:8081"   # <== Libera a UI do executor para logs
     environment:
       - "SPARK_MASTER=spark://spark-master:7077"
     networks:

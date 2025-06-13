@@ -10,5 +10,7 @@ selenium
 chromedriver-autoinstaller
 kaggle
 minio==7.2.14
+pyspark==3.3.0
+
 
 

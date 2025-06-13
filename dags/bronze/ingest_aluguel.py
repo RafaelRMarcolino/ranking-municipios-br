@@ -1,27 +1,34 @@
 from airflow.decorators import dag, task
+from airflow.operators.python import get_current_context
 from airflow.hooks.base import BaseHook
 from airflow.providers.amazon.aws.operators.athena import AthenaOperator
 from datetime import datetime
 import os
-import pandas as pd
 import json
 import boto3
 from io import BytesIO
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import lit
 
 BUCKET = "ranking-municipios-br"
 
 @dag(
-    dag_id="bronze_aluguel",
+    dag_id="bronze_aluguel_pyspark",
     schedule_interval=None,
     start_date=datetime(2025, 5, 1),
     catchup=False,
-    tags=["aluguel", "bronze", "athena"]
+    tags=["aluguel", "bronze", "pyspark"]
 )
-def ingest_aluguel():
+def ingest_aluguel_pyspark():
 
     @task()
-    def processar_e_salvar_s3(execution_date=None) -> str:
-        # Configurar credenciais do Kaggle
+    def processar_com_spark() -> str:
+        # Obter data de execução
+        context = get_current_context()
+        execution_date = context["execution_date"]
+        data_carga_str = execution_date.strftime("%Y-%m-%d")
+
+        # Kaggle config
         conn = BaseHook.get_connection("kaggle_default")
         kaggle_json = {"username": conn.login, "key": conn.password}
         os.makedirs("/home/astro/.kaggle", exist_ok=True)
@@ -29,48 +36,32 @@ def ingest_aluguel():
             json.dump(kaggle_json, f)
         os.chmod("/home/astro/.kaggle/kaggle.json", 0o600)
 
-        # Baixar dataset
+        # Download dataset
         os.makedirs("/tmp/data_kaggle", exist_ok=True)
         os.system("kaggle datasets download -d shwaubh/updated-brasilian-housing-to-rent -p /tmp/data_kaggle --unzip")
+        csv_file = next((f for f in os.listdir("/tmp/data_kaggle") if f.endswith(".csv")), None)
+
+        # Inicializar SparkSession
+        spark = SparkSession.builder \
+            .appName("AluguelBronze") \
+            .master("spark://spark-master:7077") \
+            .getOrCreate()
 
         # Ler CSV
-        files = os.listdir("/tmp/data_kaggle")
-        csv_file = next((f for f in files if f.endswith(".csv")), None)
-        df = pd.read_csv(f"/tmp/data_kaggle/{csv_file}")
+        df = spark.read.option("header", True).csv(f"/tmp/data_kaggle/{csv_file}")
 
-        # Padronizar nomes das colunas
-        df.columns = [
-            col.strip().lower().replace(" ", "_").replace("-", "_")
-            for col in df.columns
-        ]
+        # Padronizar colunas
+        for col in df.columns:
+            df = df.withColumnRenamed(col, col.strip().lower().replace(" ", "_").replace("-", "_"))
 
-        # Garantir tipos compatíveis
-        df["id"] = df["id"].astype(int)
-        df["city"] = df["city"].astype(str)
-        df["area"] = df["area"].astype("Int64")
-        df["rooms"] = df["rooms"].astype("Int64")
-        df["bathroom"] = df["bathroom"].astype("Int64")
-        df["parking_spaces"] = df["parking_spaces"].astype("Int64")
-        df["floor"] = df["floor"].astype("Int64")
-        df["animal"] = df["animal"].astype("Int64")
-        df["furniture"] = df["furniture"].astype("Int64")
-        df["hoa"] = df["hoa"].astype("Int64")
-        df["rent_amount"] = df["rent_amount"].astype("Int64")
-        df["property_tax"] = df["property_tax"].astype("Int64")
-        df["fire_insurance"] = df["fire_insurance"].astype("Int64")
-        df["total"] = df["total"].astype("Int64")
+        # Adicionar data de carga
+        df = df.withColumn("data_carga", lit(data_carga_str))
 
-        # Adicionar coluna de partição
-        exec_dt = execution_date
-        data_carga_str = exec_dt.strftime("%Y-%m-%d")
-        df["data_carga"] = data_carga_str
+        # Salvar temporariamente como Parquet
+        parquet_path = f"/tmp/aluguel_{data_carga_str}.parquet"
+        df.write.mode("overwrite").parquet(parquet_path)
 
-        # Salvar em Parquet
-        buffer = BytesIO()
-        df.to_parquet(buffer, index=False)
-        buffer.seek(0)
-
-        # Enviar ao S3 com partição única
+        # Enviar ao S3
         aws_conn = BaseHook.get_connection("aws_s3")
         s3 = boto3.client(
             "s3",
@@ -78,11 +69,17 @@ def ingest_aluguel():
             aws_secret_access_key=aws_conn.password,
             region_name=json.loads(aws_conn.extra)["region_name"]
         )
-
         key = f"bronze/aluguel_medio/data_carga={data_carga_str}/aluguel.parquet"
-        s3_path = f"s3://{BUCKET}/{key}"
-        s3.upload_fileobj(buffer, Bucket=BUCKET, Key=key)
 
+        # Compactar arquivo local em buffer para envio
+        buffer = BytesIO()
+        local_file = os.popen(f"find {parquet_path} -name '*.parquet' | head -n 1").read().strip()
+        with open(local_file, "rb") as f:
+            buffer.write(f.read())
+        buffer.seek(0)
+
+        s3.upload_fileobj(buffer, BUCKET, key)
+        s3_path = f"s3://{BUCKET}/{key}"
         print(f"✅ Parquet salvo: {s3_path}")
         return s3_path
 
@@ -95,7 +92,7 @@ def ingest_aluguel():
         aws_conn_id="aws_s3"
     )
 
-    s3_path = processar_e_salvar_s3()
-    executar_msck_repair.set_upstream(s3_path)
+    s3_path = processar_com_spark()
+    s3_path >> executar_msck_repair
 
-dag = ingest_aluguel()
+dag = ingest_aluguel_pyspark()
